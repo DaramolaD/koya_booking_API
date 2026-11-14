@@ -16,7 +16,8 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${inter.variable} ${interTight.variable} antialiased`}>
-      <body className="min-h-svh">
+      {/* Extensions often add attributes to <body>; this only affects body's own attributes. */}
+      <body className="min-h-svh" suppressHydrationWarning>
         <a
           href="#book"
           className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:bg-paper focus:px-4 focus:py-2 focus:text-sm focus:text-charcoal focus:ring-2 focus:ring-ring"
