@@ -7,7 +7,7 @@
 // Generates 14 days from today in the clinic's time zone: Mon–Fri 09:00–17:00,
 // Sat 09:00–13:00, Sun closed, 30-minute slots, two providers.
 
-const BASE = (process.env.API_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+const BASE = (process.env.API_BASE_URL ?? "http://localhost:3000").replace(/\/+$/, "").replace(/\/api$/, "");
 const API_KEY = process.env.API_KEY;
 const TZ = process.env.CLINIC_TIME_ZONE ?? "UTC";
 const DAYS = 14;

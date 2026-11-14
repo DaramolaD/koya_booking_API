@@ -34,10 +34,17 @@ function codeFor(status: number) {
   }
 }
 
+// On Vercel, prefer the production domain: per-deployment URLs (VERCEL_URL)
+// sit behind Deployment Protection and redirect to a login page.
 function baseUrl(): string {
-  if (process.env.API_BASE_URL) return process.env.API_BASE_URL;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return "http://localhost:3000";
+  const url =
+    process.env.API_BASE_URL ||
+    (process.env.VERCEL_ENV === "production" && process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "http://localhost:3000");
+  return url.replace(/\/+$/, "").replace(/\/api$/, "");
 }
 
 async function apiFetch<T>(
@@ -58,6 +65,7 @@ async function apiFetch<T>(
       },
       body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
       cache: "no-store",
+      redirect: "manual", // the API never redirects; a redirect means we hit the wrong host
       signal: AbortSignal.timeout(10_000),
     });
   } catch {
@@ -65,7 +73,11 @@ async function apiFetch<T>(
   }
 
   const body = (await res.json().catch(() => null)) as unknown;
-  if (res.ok) return { ok: true, status: res.status, data: body as T };
+  if (res.ok && body !== null && typeof body === "object") return { ok: true, status: res.status, data: body as T };
+  if (res.ok || (res.status >= 300 && res.status < 400)) {
+    console.error(`[api-client] unexpected ${res.status} from ${baseUrl()}/api${path} (not API JSON)`);
+    return { ok: false, status: 502, code: "SERVER_ERROR", message: "Unexpected response from the booking service." };
+  }
 
   const retryAfter = Number(res.headers.get("retry-after"));
   const message = (body as { error?: unknown } | null)?.error;
