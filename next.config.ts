@@ -6,7 +6,6 @@ const nextConfig: NextConfig = {
   },
   cacheComponents: true,
   images: {
-    remotePatterns: [new URL("https://images.unsplash.com/**")],
     qualities: [75],
   },
   partialPrefetching: true,
