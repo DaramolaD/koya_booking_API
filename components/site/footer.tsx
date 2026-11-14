@@ -40,13 +40,6 @@ export function Footer() {
           </address>
         </div>
       </div>
-
-      <div className="border-t border-line">
-        <p className="mx-auto w-full max-w-7xl px-5 py-6 text-xs leading-relaxed text-muted-foreground sm:px-8">
-          {SITE.name} is a fictional clinic built as a demo project. In a medical emergency, call your
-          local emergency number. Photography from Unsplash.
-        </p>
-      </div>
     </footer>
   );
 }
