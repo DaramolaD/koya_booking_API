@@ -8,9 +8,9 @@ import {
   listBookingsByEmail,
   listSlots,
 } from "@/lib/api-client";
-import { clinicToday } from "@/lib/format";
+import { clinicToday, isIsoDate } from "@/lib/format";
 import type { Booking, Slot } from "@/lib/types";
-import { groupSlots, toBookingView, type BookingView, type SlotsByDate } from "@/lib/views";
+import { forDay, groupSlots, toBookingView, type BookingView, type SlotsByDate } from "@/lib/views";
 
 /** Bookings only carry slot_id, so join the slots for display. */
 async function withSlots(bookings: Booking[]): Promise<BookingView[]> {
@@ -19,9 +19,11 @@ async function withSlots(bookings: Booking[]): Promise<BookingView[]> {
   return bookings.map((b) => toBookingView(b, byId.get(b.slot_id)));
 }
 
-export async function getSlotsAction(): Promise<ActionResult<SlotsByDate>> {
+export async function getSlotsAction(date: string): Promise<ActionResult<SlotsByDate>> {
+  if (!isIsoDate(date)) return { ok: false, code: "VALIDATION_ERROR", message: "Invalid date." };
   const result = await listSlots();
-  return result.ok ? { ok: true, data: groupSlots(result.data.slots, clinicToday()) } : toActionError(result);
+  if (!result.ok) return toActionError(result);
+  return { ok: true, data: forDay(groupSlots(result.data.slots, clinicToday()), date) };
 }
 
 export type CreateBookingInput = {

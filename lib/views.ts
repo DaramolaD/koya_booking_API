@@ -57,6 +57,11 @@ export function groupSlots(slots: SlotWithAvailability[], today: string, now = D
   return { byDate, availableDates };
 }
 
+/** Keep only one day's slots, so the browser isn't sent the whole calendar. */
+export function forDay(grouped: SlotsByDate, date: string): SlotsByDate {
+  return { availableDates: grouped.availableDates, byDate: { [date]: grouped.byDate[date] ?? [] } };
+}
+
 export function toBookingView(b: Booking, slot: Slot | undefined): BookingView {
   return {
     id: b.id,

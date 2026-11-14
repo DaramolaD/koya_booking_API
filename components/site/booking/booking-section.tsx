@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toActionError } from "@/lib/action-errors";
 import { findNextAvailable } from "@/lib/availability";
 import { clinicDate, clinicToday } from "@/lib/format";
-import { groupSlots } from "@/lib/views";
+import { forDay, groupSlots } from "@/lib/views";
 import { Reveal } from "../motion";
 import { BookingPanel } from "./booking-panel";
 
@@ -37,10 +37,10 @@ async function BookingData() {
   const today = clinicToday();
 
   const { result, slot } = await findNextAvailable();
-  const initialSlots = result.ok
-    ? { ok: true as const, data: groupSlots(result.data.slots, today) }
-    : toActionError(result);
   const initialDate = slot ? clinicDate(slot.start) : today;
+  const initialSlots = result.ok
+    ? { ok: true as const, data: forDay(groupSlots(result.data.slots, today), initialDate) }
+    : toActionError(result);
 
   return <BookingPanel today={today} initialDate={initialDate} initialSlots={initialSlots} />;
 }

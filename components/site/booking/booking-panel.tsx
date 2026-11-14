@@ -2,7 +2,7 @@
 
 import { RotateCw } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getSlotsAction } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,6 +17,7 @@ import { BookingForm } from "./booking-form";
 import { DateCalendar } from "./date-calendar";
 
 type SlotsResult = ActionResult<SlotsByDate>;
+
 
 const step = {
   initial: { opacity: 0, y: 12 },
@@ -35,22 +36,35 @@ export function BookingPanel({
   initialSlots: SlotsResult;
 }) {
   const [date, setDate] = useState(initialDate);
+  // Days with openings for the whole calendar, but slot lists only for days viewed so far.
   const [slots, setSlots] = useState<SlotsResult>(initialSlots);
-  const [loading, setLoading] = useState(false);
+  const [loadingDate, setLoadingDate] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState<BookingView | null>(null);
   const [rateLimitedUntil, setRateLimitedUntil] = useState<number | null>(null);
 
-  const reload = useCallback(async () => {
-    setLoading(true);
+  /** Fetch one day. `fresh` drops other cached days, which may be stale after a change. */
+  const load = useCallback(async (d: string, fresh = false) => {
+    setLoadingDate(d);
+    let res: SlotsResult;
     try {
-      setSlots(await getSlotsAction());
+      res = await getSlotsAction(d);
     } catch {
-      setSlots({ ok: false, code: "NETWORK_ERROR", message: "Couldn't load times. Check your connection." });
-    } finally {
-      setLoading(false);
+      res = { ok: false, code: "NETWORK_ERROR", message: "Couldn't load times. Check your connection." };
     }
+    setSlots((prev) =>
+      res.ok && prev.ok && !fresh
+        ? { ok: true, data: { availableDates: res.data.availableDates, byDate: { ...prev.data.byDate, ...res.data.byDate } } }
+        : res,
+    );
+    setLoadingDate((cur) => (cur === d ? null : cur));
   }, []);
+
+  const dateRef = useRef(date);
+  useEffect(() => {
+    dateRef.current = date;
+  }, [date]);
+  const reload = useCallback(() => load(dateRef.current, true), [load]);
 
   useEffect(() => onBookingCancelled(() => void reload()), [reload]);
 
@@ -64,6 +78,7 @@ export function BookingPanel({
     if (d === date) return;
     setDate(d);
     setSelectedId(null);
+    if (!slots.ok || !slots.data.byDate[d]) void load(d);
   }
 
   function handleBooked(booking: BookingView) {
@@ -96,9 +111,9 @@ export function BookingPanel({
     void reload();
   }
 
+  const loading = loadingDate === date;
   const daySlots = slots.ok ? (slots.data.byDate[date] ?? []) : [];
   const availableDates = slots.ok ? slots.data.availableDates : [];
-  const lastDate = slots.ok ? (Object.keys(slots.data.byDate).sort().at(-1) ?? today) : today;
   const selected = daySlots.find((s) => s.id === selectedId) ?? null;
   const day = toDayView(date);
 
@@ -116,7 +131,6 @@ export function BookingPanel({
             value={date}
             onChange={chooseDate}
             min={today}
-            max={lastDate > date ? lastDate : date}
             available={availableDates}
           />
         </div>

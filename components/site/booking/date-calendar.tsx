@@ -35,7 +35,7 @@ function monthCells(month: string): (string | null)[] {
   ];
 }
 
-const clamp = (d: string, min: string, max: string) => (d < min ? min : d > max ? max : d);
+const clamp = (d: string, min: string, max?: string) => (d < min ? min : max && d > max ? max : d);
 
 export function DateCalendar({
   value,
@@ -47,12 +47,13 @@ export function DateCalendar({
   value: string;
   onChange: (date: string) => void;
   min: string;
-  max: string;
+  /** Optional upper bound; omit for no limit. */
+  max?: string;
   available?: string[];
 }) {
+  // Every date in range can be picked; `available` only adds the dot marker.
   const availableSet = new Set(available ?? []);
-  const selectable = (d: string) =>
-    d >= min && d <= max && (!available || availableSet.has(d) || d === value);
+  const selectable = (d: string) => d >= min && (!max || d <= max);
   const [month, setMonth] = useState(monthOf(value));
   // Roving tabindex.
   const [focusDate, setFocusDate] = useState(value);
@@ -66,7 +67,7 @@ export function DateCalendar({
   }, [focusDate, month]);
 
   const canPrev = month > monthOf(min);
-  const canNext = month < monthOf(max);
+  const canNext = !max || month < monthOf(max);
   const cells = monthCells(month);
   const tabbable =
     monthOf(focusDate) === month && selectable(focusDate)
@@ -84,9 +85,8 @@ export function DateCalendar({
     const step = moves[e.key];
     if (step === undefined) return;
     e.preventDefault();
-    let target = addDays(tabbable, step);
-    while (target >= min && target <= max && !selectable(target)) target = addDays(target, step);
-    if (target < min || target > max) return;
+    const target = addDays(tabbable, step);
+    if (!selectable(target)) return;
     setFocusDate(target);
     setMonth(monthOf(target));
     moveFocus.current = true;
