@@ -1,11 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   experimental: {
     agentFeedback: true,
   },
   cacheComponents: true,
+  images: {
+    remotePatterns: [new URL("https://images.unsplash.com/**")],
+    qualities: [75],
+  },
   partialPrefetching: true,
   turbopack: {
     rules: {
